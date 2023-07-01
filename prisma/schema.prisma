@@ -1,0 +1,187 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model bertopic_params {
+  id                Int      @id @default(autoincrement())
+  kmeans_n_clusters Int
+  umap_n_neighbors  Int
+  params            params[]
+
+  @@unique([kmeans_n_clusters, umap_n_neighbors])
+}
+
+model experiment {
+  id                  Int                   @id @default(autoincrement())
+  name                String                @unique
+  slr_id              Int
+  slr                 slr                   @relation(fields: [slr_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  experiment_qgs      experiment_qgs[]
+  params              params[]
+  similar_words_cache similar_words_cache[]
+}
+
+model experiment_qgs {
+  experiment_id Int
+  study_id      Int
+  experiment    experiment @relation(fields: [experiment_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  study         study      @relation(fields: [study_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
+
+  @@id([experiment_id, study_id])
+}
+
+model formulation_params {
+  id                       Int      @id @default(autoincrement())
+  n_words_per_topic        Int
+  n_similar_words_per_word Int
+  params                   params[]
+
+  @@unique([n_words_per_topic, n_similar_words_per_word])
+}
+
+model gs_in_bsb {
+  search_string_performance_id Int
+  study_id                     Int
+  search_string_performance    search_string_performance @relation(fields: [search_string_performance_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  study                        study                     @relation(fields: [study_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
+
+  @@id([search_string_performance_id, study_id])
+}
+
+model gs_in_sb {
+  search_string_performance_id Int
+  study_id                     Int
+  search_string_performance    search_string_performance @relation(fields: [search_string_performance_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  study                        study                     @relation(fields: [study_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
+
+  @@id([search_string_performance_id, study_id])
+}
+
+model gs_in_scopus {
+  search_string_performance_id Int
+  study_id                     Int
+  search_string_performance    search_string_performance @relation(fields: [search_string_performance_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  study                        study                     @relation(fields: [study_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
+
+  @@id([search_string_performance_id, study_id])
+}
+
+model lda_params {
+  id                     Int      @id @default(autoincrement())
+  min_document_frequency Float
+  n_topics               Int
+  params                 params[]
+
+  @@unique([min_document_frequency, n_topics])
+}
+
+/// This table contains check constraints and requires additional setup for migrations. Visit https://pris.ly/d/check-constraints for more info.
+model params {
+  id                    Int                @id @default(autoincrement())
+  experiment_id         Int
+  formulation_params_id Int
+  lda_params_id         Int?
+  bertopic_params_id    Int?
+  search_string_id      Int
+  bertopic_params       bertopic_params?   @relation(fields: [bertopic_params_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  experiment            experiment         @relation(fields: [experiment_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  formulation_params    formulation_params @relation(fields: [formulation_params_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  lda_params            lda_params?        @relation(fields: [lda_params_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  search_string         search_string      @relation(fields: [search_string_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
+
+  @@unique([experiment_id, formulation_params_id, bertopic_params_id])
+  @@unique([experiment_id, formulation_params_id, lda_params_id])
+}
+
+model qgs_in_scopus {
+  search_string_performance_id Int
+  study_id                     Int
+  search_string_performance    search_string_performance @relation(fields: [search_string_performance_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  study                        study                     @relation(fields: [study_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
+
+  @@id([search_string_performance_id, study_id])
+}
+
+model search_string {
+  id                        Int                        @id @default(autoincrement())
+  string                    String                     @unique
+  params                    params[]
+  search_string_performance search_string_performance?
+}
+
+model search_string_performance {
+  id                  Int             @id @default(autoincrement())
+  n_scopus_results    Int
+  n_qgs_in_scopus     Int
+  n_gs_in_scopus      Int
+  n_gs_in_bsb         Int
+  n_gs_in_sb          Int
+  start_set_precision Float
+  start_set_recall    Float
+  start_set_f1_score  Float
+  bsb_recall          Float
+  sb_recall           Float
+  search_string_id    Int             @unique
+  gs_in_bsb           gs_in_bsb[]
+  gs_in_sb            gs_in_sb[]
+  gs_in_scopus        gs_in_scopus[]
+  qgs_in_scopus       qgs_in_scopus[]
+  search_string       search_string   @relation(fields: [search_string_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
+}
+
+model similar_word {
+  id                     Int                 @id @default(autoincrement())
+  word                   String
+  similar_words_cache_id Int
+  similar_words_cache    similar_words_cache @relation(fields: [similar_words_cache_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
+}
+
+model similar_words_cache {
+  id            Int            @id @default(autoincrement())
+  experiment_id Int
+  word          String
+  similar_word  similar_word[]
+  experiment    experiment     @relation(fields: [experiment_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
+
+  @@unique([experiment_id, word])
+}
+
+model slr {
+  id                   Int          @id @default(autoincrement())
+  name                 String       @unique
+  min_publication_year Int?
+  max_publication_year Int?
+  experiment           experiment[]
+  study                study[]
+}
+
+model studies_citations {
+  study_id                                    Int
+  reference_id                                Int
+  study_studies_citations_reference_idTostudy study @relation("studies_citations_reference_idTostudy", fields: [reference_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  study_studies_citations_study_idTostudy     study @relation("studies_citations_study_idTostudy", fields: [study_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
+
+  @@id([study_id, reference_id])
+}
+
+model study {
+  id                                                      Int                 @id @default(autoincrement())
+  node_id                                                 Int
+  title                                                   String
+  abstract                                                String
+  keywords                                                String
+  slr_id                                                  Int
+  experiment_qgs                                          experiment_qgs[]
+  gs_in_bsb                                               gs_in_bsb[]
+  gs_in_sb                                                gs_in_sb[]
+  gs_in_scopus                                            gs_in_scopus[]
+  qgs_in_scopus                                           qgs_in_scopus[]
+  studies_citations_studies_citations_reference_idTostudy studies_citations[] @relation("studies_citations_reference_idTostudy")
+  studies_citations_studies_citations_study_idTostudy     studies_citations[] @relation("studies_citations_study_idTostudy")
+  slr                                                     slr                 @relation(fields: [slr_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
+}
