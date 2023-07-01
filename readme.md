@@ -1,6 +1,6 @@
 # sesg-web
 
-> Web interface visualize the results obtained with SeSG.
+> Web interface to visualize SeSG results.
 
 ## Installation
 
